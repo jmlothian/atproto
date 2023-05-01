@@ -10,7 +10,7 @@ env:
   PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
 
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: bsky-app-view
 
 jobs:
     bsky-container-azure:
@@ -32,6 +32,14 @@ jobs:
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+        - name: 'login to docker'
+          id: docker-login
+          uses: azure/docker-login@v1
+          with:
+            login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+            username: ${{ secrets.REGISTRY_USERNAME }}
+            password: ${{ secrets.REGISTRY_PASSWORD }}
+            
         - name: Extract Docker metadata
           id: meta
           uses: docker/metadata-action@v4
@@ -42,16 +50,20 @@ jobs:
               type=sha,enable=true,priority=100,prefix=bsky:,suffix=,format=long
 
 
-        - name: 'Build and push image'
+        - name: Build and push Docker image
           id: build-and-push
-          uses: azure/docker-login@v1
+          uses: docker/build-push-action@v4
           with:
-            login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-            username: ${{ secrets.REGISTRY_USERNAME }}
-            password: ${{ secrets.REGISTRY_PASSWORD }}
-        - run: |
-            docker build -f ./packages/bsky/ . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            context: .
+            push: true
+            file: ./packages/bsky/Dockerfile
+            tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            labels: ${{ steps.meta.outputs.labels }}
+            build-args: |
+              version=${{ steps.tag.outputs.tag }}
+            
+#            cache-from: type=gha
+#            cache-to: type=gha,mode=max
 
         - name: 'Deploy to Azure Container Instances'
           uses: 'azure/aci-deploy@v1'

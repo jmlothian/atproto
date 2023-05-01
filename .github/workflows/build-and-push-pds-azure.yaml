@@ -42,16 +42,30 @@ jobs:
               type=sha,enable=true,priority=100,prefix=pds:,suffix=,format=long
 
 
-        - name: 'Build and push image'
-          id: build-and-push
+        - name: 'login to docker'
+          id: docker-login
           uses: azure/docker-login@v1
           with:
             login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
             username: ${{ secrets.REGISTRY_USERNAME }}
             password: ${{ secrets.REGISTRY_PASSWORD }}
-        - run: |
-            docker build -f ./packages/pds/Dockerfile . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+#        - run: |
+#            docker build -f ./packages/pds/Dockerfile . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+#            docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+        - name: Build and push Docker image
+          id: build-and-push
+          uses: docker/build-push-action@v4
+          with:
+            context: .
+#            push: ${{ github.event_name != 'pull_request' }}
+            push: true
+            file: ./packages/pds/Dockerfile
+            tags: ${{ steps.meta.outputs.tags }}
+#            ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            labels: ${{ steps.meta.outputs.labels }}
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
 
         - name: 'Deploy to Azure Container Instances'
           uses: 'azure/aci-deploy@v1'

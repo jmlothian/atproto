@@ -59,8 +59,8 @@ jobs:
             file: ./packages/pds/Dockerfile
             tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
+#            cache-from: type=gha
+#            cache-to: type=gha,mode=max
 
         - name: 'Deploy to Azure Container Instances'
           uses: 'azure/aci-deploy@v1'

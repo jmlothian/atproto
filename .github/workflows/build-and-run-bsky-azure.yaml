@@ -60,8 +60,7 @@ jobs:
             tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             labels: ${{ steps.meta.outputs.labels }}
             build-args: |
-              version=${{ steps.tag.outputs.tag }}
-            
+              version=${{ steps.tag.outputs.tag }}       
 #            cache-from: type=gha
 #            cache-to: type=gha,mode=max
 

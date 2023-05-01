@@ -1,4 +1,4 @@
-name: build-and-push-pds-azure
+name: build-and-push-bsky-azure
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-    pds-container-azure:
+    bsky-container-azure:
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -39,7 +39,7 @@ jobs:
             images: |
               ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
             tags: |
-              type=sha,enable=true,priority=100,prefix=pds:,suffix=,format=long
+              type=sha,enable=true,priority=100,prefix=bsky:,suffix=,format=long
 
 
         - name: 'Build and push image'

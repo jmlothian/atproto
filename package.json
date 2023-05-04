@@ -47,5 +47,8 @@
     "packages": [
       "packages/*"
     ]
+  },
+  "dependencies": {
+    "npmcli": "^1.2.2"
   }
 }

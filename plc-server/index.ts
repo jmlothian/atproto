@@ -24,7 +24,7 @@ type ServerInfo = {
 
   
 export const runPlc = async (cfg: PlcConfig): Promise<PlcServerInfo> => {
-    const db = plc.Database.postgres( { url:"postgresql://pgbskyadmin:%40uz0%40m4zvnz%23u%5EDEFiuLzH2MP0Nfn%25%5E%5E6n6q8epV@bluesky.postgres.database.azure.com:5432/plc?sslmode==prefer" } )//plc.Database.mock()
+    const db = plc.Database.postgres( { url:"postgresql://pgbskyadmin:@bluesky.postgres.database.azure.com:5432/plc?sslmode==prefer" } )//plc.Database.mock()
     await db.migrateToLatestOrThrow()
     const server = plc.PlcServer.create({ db, ...cfg })
     const listener = await server.start()

@@ -16,10 +16,20 @@ const {
   S3BlobStore,
   CloudfrontInvalidator,
 } = require('@atproto/aws')
+
+const {
+  AzureBlobStore,
+  AzureCDNInvalidator,
+  KeyVaultKeypair
+} = require('@atproto/azure')
+
 const { Database, ServerConfig, PDS } = require('@atproto/pds')
 const { Secp256k1Keypair } = require('@atproto/crypto')
+const { from } = require('form-data')
 
 const main = async () => {
+  const cloudhost = "azure";
+
   const env = getEnv()
   // Migrate using credentialed user
   const migrateDb = Database.postgres({
@@ -36,18 +46,47 @@ const main = async () => {
     poolMaxUses: env.dbPoolMaxUses,
     poolIdleTimeoutMs: env.dbPoolIdleTimeoutMs,
   })
-  const s3Blobstore = new S3BlobStore({ bucket: env.s3Bucket })
+  const cloudBlobstore = cloudHost == "aws" ? 
+    new S3BlobStore({ bucket: env.s3Bucket }) 
+    : new AzureBlobStore(new AzureBlobStore({ 
+      container:env.azStorageContainer, 
+      accountName:env.azStorageAcctName,
+      tenantId:env.azTenantId,
+      clientId:env.azClientId,
+      clientSecret:env.azClientSecret
+    }))
   const repoSigningKey = await Secp256k1Keypair.import(env.repoSigningKey)
-  const plcRotationKey = await KmsKeypair.load({
-    keyId: env.plcRotationKeyId,
-  })
+  //todo: we need pub/private keys for both rotation and recovery
+  const plcRotationKey = cloudHost == "aws" ? 
+    await KmsKeypair.load({
+      keyId: env.plcRotationKeyId,
+    }) 
+    : await KeyVaultKeypair.load({
+      privateKeyId: "bluesky-privatekey",
+      publicKeyId:"bluesky-publickey",
+      tenantId:env.azTenantId,
+      clientId:env.azClientId,
+      clientSecret:env.azClientSecret,
+      vaultName:env.vaultName
+    })
+
   let recoveryKey
   if (env.recoveryKeyId.startsWith('did:')) {
     recoveryKey = env.recoveryKeyId
   } else {
-    const recoveryKeypair = await KmsKeypair.load({
+    const recoveryKeypair = cloudHost == "aws" ? 
+    await KmsKeypair.load({
       keyId: env.recoveryKeyId,
     })
+    : await KeyVaultKeypair.load({
+      privateKeyId: "bluesky-privatekey",
+      publicKeyId:"bluesky-publickey",
+      tenantId:env.azTenantId,
+      clientId:env.azClientId,
+      clientSecret:env.azClientSecret,
+      vaultName:env.vaultName
+    })
+    
     recoveryKey = recoveryKeypair.did()
   }
   const cfg = ServerConfig.readEnv({
@@ -59,17 +98,18 @@ const main = async () => {
       password: env.smtpPassword,
     }),
   })
-  const cfInvalidator = new CloudfrontInvalidator({
+  const imageInvalidator = cloudHost == "aws" ? new CloudfrontInvalidator({
     distributionId: env.cfDistributionId,
     pathPrefix: cfg.imgUriEndpoint && new URL(cfg.imgUriEndpoint).pathname,
-  })
+  }) : new AzureCDNInvalidator();
+
   const pds = PDS.create({
     db,
-    blobstore: s3Blobstore,
+    blobstore: cloudBlobstore,
     repoSigningKey,
     plcRotationKey,
     config: cfg,
-    imgInvalidator: cfInvalidator,
+    imgInvalidator: imageInvalidator,
   })
   await pds.start()
   // Graceful shutdown (see also https://aws.amazon.com/blogs/containers/graceful-shutdowns-with-ecs/)
@@ -109,6 +149,13 @@ const getEnv = () => ({
   smtpPassword: process.env.SMTP_PASSWORD,
   s3Bucket: process.env.S3_BUCKET_NAME,
   cfDistributionId: process.env.CF_DISTRIBUTION_ID,
+  cloudHost: process.env.CLOUD_HOST || 'aws',
+  azStorageContainer: process.env.AZ_STORAGE_CONTAINER,
+  azStorageAcctName : process.env.AZ_STORAGE_ACCT_NAME,
+  azTenantId: process.env.AZ_TENANT_ID,
+  azClientId: process.env.AZ_CLIENT_ID,
+  azClientSecret: process.env.AZ_CLIENT_SECRET,
+  azVaultName: process.env.AZ_VAULT_NAME
 })
 
 const maintainXrpcResource = (span, req) => {

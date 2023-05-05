@@ -1,8 +1,11 @@
 import express from 'express'
-
+import * as dotenv from 'dotenv'
 
 import * as plc from '@did-plc/server'
 import { AddressInfo } from 'net'
+
+var env = dotenv.config();
+
 export type CloseFn = () => Promise<void>
 
 const app = express()
@@ -24,7 +27,9 @@ type ServerInfo = {
 
   
 export const runPlc = async (cfg: PlcConfig): Promise<PlcServerInfo> => {
-    const db = plc.Database.postgres( { url:"postgresql://pgbskyadmin:%40uz0%40m4zvnz%23u%5EDEFiuLzH2MP0Nfn%25%5E%5E6n6q8epV@bluesky.postgres.database.azure.com:5432/plc?sslmode==prefer" } )//plc.Database.mock()
+
+    const pg_password = process.env.PG_PASSWORD;
+    const db = plc.Database.postgres( { url:`postgresql://pgbskyadmin:${pg_password}@bluesky.postgres.database.azure.com:5432/plc?sslmode==prefer` } )//plc.Database.mock()
     await db.migrateToLatestOrThrow()
     const server = plc.PlcServer.create({ db, ...cfg })
     const listener = await server.start()
@@ -40,7 +45,7 @@ export const runPlc = async (cfg: PlcConfig): Promise<PlcServerInfo> => {
     }
   }
 
-  const keypair = await crypto.EcdsaKeypair.create()
+  //const keypair = await crypto.EcdsaKeypair.create()
 
   app.get('/', (req, res) => {
     res.send('Hello World!')

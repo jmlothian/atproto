@@ -4,5 +4,6 @@
     "outDir": "./dist", // Your outDir,
     "emitDeclarationOnly": true
   },
+  "types":["node"],
   "include": ["./src","__tests__/**/**.ts"]
 }

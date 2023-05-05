@@ -48,13 +48,27 @@ const main = async () => {
   })
   const cloudBlobstore = cloudHost == "aws" ? 
     new S3BlobStore({ bucket: env.s3Bucket }) 
-    : new AzureBlobStore({  })
+    : new AzureBlobStore(new AzureBlobStore({ 
+      container:env.azStorageContainer, 
+      accountName:env.azStorageAcctName,
+      tenantId:env.azTenantId,
+      clientId:env.azClientId,
+      clientSecret:env.azClientSecret
+    }))
   const repoSigningKey = await Secp256k1Keypair.import(env.repoSigningKey)
+  //todo: we need pub/private keys for both rotation and recovery
   const plcRotationKey = cloudHost == "aws" ? 
     await KmsKeypair.load({
       keyId: env.plcRotationKeyId,
     }) 
-    : await KeyVaultKeypair.load({})
+    : await KeyVaultKeypair.load({
+      privateKeyId: "bluesky-privatekey",
+      publicKeyId:"bluesky-publickey",
+      tenantId:env.azTenantId,
+      clientId:env.azClientId,
+      clientSecret:env.azClientSecret,
+      vaultName:env.vaultName
+    })
 
   let recoveryKey
   if (env.recoveryKeyId.startsWith('did:')) {
@@ -64,7 +78,14 @@ const main = async () => {
     await KmsKeypair.load({
       keyId: env.recoveryKeyId,
     })
-    : await KeyVaultKeypair.load({})
+    : await KeyVaultKeypair.load({
+      privateKeyId: "bluesky-privatekey",
+      publicKeyId:"bluesky-publickey",
+      tenantId:env.azTenantId,
+      clientId:env.azClientId,
+      clientSecret:env.azClientSecret,
+      vaultName:env.vaultName
+    })
     
     recoveryKey = recoveryKeypair.did()
   }
@@ -128,6 +149,13 @@ const getEnv = () => ({
   smtpPassword: process.env.SMTP_PASSWORD,
   s3Bucket: process.env.S3_BUCKET_NAME,
   cfDistributionId: process.env.CF_DISTRIBUTION_ID,
+  cloudHost: process.env.CLOUD_HOST || 'aws',
+  azStorageContainer: process.env.AZ_STORAGE_CONTAINER,
+  azStorageAcctName : process.env.AZ_STORAGE_ACCT_NAME,
+  azTenantId: process.env.AZ_TENANT_ID,
+  azClientId: process.env.AZ_CLIENT_ID,
+  azClientSecret: process.env.AZ_CLIENT_SECRET,
+  azVaultName: process.env.AZ_VAULT_NAME
 })
 
 const maintainXrpcResource = (span, req) => {

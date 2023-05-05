@@ -1,7 +1,7 @@
 {
-    "module": "esnext",
+
     "compilerOptions": {
-        "module": "commonjs",
+        "module": "esnext",
       "esModuleInterop": true,
       "target": "es2020",
       "moduleResolution": "node",
@@ -23,7 +23,7 @@
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
       "isolatedModules": true,
-      "composite": true
-    },
-    "lib": ["es2015"]
+      "composite": true,
+      "types":["node"]
+    }
   }

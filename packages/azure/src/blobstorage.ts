@@ -1,14 +1,17 @@
 import { BlobStore, BlobNotFoundError } from '@atproto/repo'
 import { CID } from 'multiformats/cid'
 import stream from 'stream'
-import { DefaultAzureCredential } from '@azure/identity';
+import { ClientSecretCredential, DefaultAzureCredential } from '@azure/identity';
 import { BlobServiceClient, BlockBlobClient, ContainerClient } from "@azure/storage-blob";
 import { randomStr } from '@atproto/crypto'
 import { v1 as uuidv1 } from "uuid";
 
 export type AzureBlobStorageConfig = {
     container: string,
-    accountName: string
+    accountName: string,
+    tenantId: string,
+    clientId: string,
+    clientSecret: string
 }
 
 export class AzureBlobStore implements BlobStore {
@@ -21,7 +24,12 @@ export class AzureBlobStore implements BlobStore {
         this.container = cfg.container
         this.client = new BlobServiceClient(
             `https://${cfg.accountName}.blob.core.windows.net`,
-            new DefaultAzureCredential()
+            new ClientSecretCredential(            
+                cfg.tenantId,
+                cfg.clientId,
+                cfg.clientSecret
+            )
+            //new DefaultAzureCredential()
         );
         this.containerClient = this.client.getContainerClient(this.container);
     }

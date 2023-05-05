@@ -13,7 +13,8 @@ export type KeyVaultConfig = {
 };
 
 export class KeyVaultKeypair implements crypto.Keypair {
-    jwtAlg: string;
+    jwtAlg = crypto.SECP256K1_JWT_ALG
+    
     constructor(
         private client: CryptographyClient,
         private keyId: string,

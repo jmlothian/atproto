@@ -2,7 +2,7 @@ import { BlobStore, BlobNotFoundError } from '@atproto/repo'
 import { CID } from 'multiformats/cid'
 import stream from 'stream'
 import { DefaultAzureCredential } from '@azure/identity';
-import { BlobServiceClient } from "@azure/storage-blob";
+import { BlobServiceClient, BlockBlobClient, ContainerClient } from "@azure/storage-blob";
 import { randomStr } from '@atproto/crypto'
 import { v1 as uuidv1 } from "uuid";
 
@@ -14,13 +14,16 @@ export type AzureBlobStorageConfig = {
 export class AzureBlobStore implements BlobStore {
 
     private client: BlobServiceClient
+    private containerClient :ContainerClient
     private container: string
+
     constructor(cfg: AzureBlobStorageConfig) {
         this.container = cfg.container
         this.client = new BlobServiceClient(
             `https://${cfg.accountName}.blob.core.windows.net`,
             new DefaultAzureCredential()
         );
+        this.containerClient = this.client.getContainerClient(this.container);
     }
 
     private genKey() {
@@ -39,48 +42,81 @@ export class AzureBlobStore implements BlobStore {
         return `quarantine/${cid.toString()}`
     }
 
-    putTemp(bytes: any): Promise<string> {
-        throw new Error('Method not implemented.')
+    async putTemp(bytes: any): Promise<string> {
+        const key = this.genKey()
+        const blockBlobClient: BlockBlobClient = await this.containerClient.getBlockBlobClient(this.getTmpPath(key));
+        const uploadResponse = await blockBlobClient.uploadData(bytes);
+        return key
     }
-    makePermanent(key: string, cid: CID): Promise<void> {
-        throw new Error('Method not implemented.')
+    async makePermanent(key: string, cid: CID): Promise<void> {
+        const alreadyHas = await this.hasStored(cid)
+        if (!alreadyHas) {
+          await this.move({
+            from: this.getTmpPath(key),
+            to: this.getStoredPath(cid),
+          })
+        } else {
+          // already saved, so we no-op & just delete the temp
+          await this.deleteKey(this.getTmpPath(key))
+        }
     }
-    putPermanent(cid: CID, bytes: any): Promise<void> {
-        throw new Error('Method not implemented.')
+    async putPermanent(cid: CID, bytes: any): Promise<void> {
+        const key = this.genKey()
+        const blockBlobClient: BlockBlobClient = await this.containerClient.getBlockBlobClient(this.getStoredPath(cid));
+        const uploadResponse = await blockBlobClient.uploadData(bytes);
     }
-    quarantine(cid: CID): Promise<void> {
-        throw new Error('Method not implemented.')
+    async quarantine(cid: CID): Promise<void> {
+        await this.move({
+            from: this.getStoredPath(cid),
+            to: this.getQuarantinedPath(cid),
+          })
     }
-    unquarantine(cid: CID): Promise<void> {
-        throw new Error('Method not implemented.')
+    async unquarantine(cid: CID): Promise<void> {
+        await this.move({
+            from: this.getQuarantinedPath(cid),
+            to: this.getStoredPath(cid),
+          })
     }
-    getBytes(cid: CID): Promise<Uint8Array> {
-        throw new Error('Method not implemented.')
+    async getBytes(cid: CID): Promise<Uint8Array> {
+        //todo: not found error
+        const blockBlobClient: BlockBlobClient = this.containerClient.getBlockBlobClient(this.getStoredPath(cid));
+        const buffer = await blockBlobClient.downloadToBuffer()
+        return buffer;
     }
 
     private async getObject(cid: CID) {
-        const res = await this.client.download({
-          Bucket: this.container,
-          Key: this.getStoredPath(cid),
-        })
-        if (res.Body) {
-          return res.Body
-        } else {
-          throw new BlobNotFoundError()
-        }
+        //todo: not found error
+        const blockBlobClient: BlockBlobClient = this.containerClient.getBlockBlobClient(this.getStoredPath(cid));
+        const res = await blockBlobClient.download()
+        return res;
       }
 
-    getStream(cid: CID): Promise<stream.Readable> {
-
-
-        throw new Error('Method not implemented.')
+    async getStream(cid: CID): Promise<stream.Readable> {
+        //todo: not found error
+        const res = await this.getObject(cid)
+        return res.readableStreamBody as stream.Readable
     }
-    hasStored(cid: CID): Promise<boolean> {
-        throw new Error('Method not implemented.')
+    async delete(cid: CID): Promise<void> {
+        await this.deleteKey(this.getStoredPath(cid))
     }
-    delete(cid: CID): Promise<void> {
-        throw new Error('Method not implemented.')
+    async hasStored(cid: CID): Promise<boolean> {
+        try {
+            const blockBlobClient: BlockBlobClient = this.containerClient.getBlockBlobClient(this.getStoredPath(cid));
+            return await  blockBlobClient.exists();
+          } catch (err) {
+            return false
+          }
     }
+    private async deleteKey(key: string) {
+        const blockBlobClient: BlockBlobClient = this.containerClient.getBlockBlobClient(key);
+        await blockBlobClient.deleteIfExists();
+    }
+    private async move(keys: { from: string; to: string }) {
+        var sourceBlobClient = this.containerClient.getBlockBlobClient(keys.from)
+        var targetBlobClient = this.containerClient.getBlockBlobClient(keys.to)
+        await targetBlobClient.beginCopyFromURL(sourceBlobClient.url);
+        await sourceBlobClient.deleteIfExists();
+      }
 
 }
 

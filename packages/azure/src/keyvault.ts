@@ -62,7 +62,7 @@ export class KeyVaultKeypair implements crypto.Keypair {
       }
     async sign(msg: Uint8Array): Promise<Uint8Array> {
         var hash = sha256(msg);
-        const signature = await secp.signAsync(hash, this.privateKey);
+        const signature = await secp.sign(hash, this.privateKey);
         return signature.toCompactRawBytes();
     }
     did(): string {

@@ -46,7 +46,7 @@ const main = async () => {
     poolMaxUses: env.dbPoolMaxUses,
     poolIdleTimeoutMs: env.dbPoolIdleTimeoutMs,
   })
-  const cloudBlobstore = cloudHost == "aws" ? 
+  const cloudBlobstore = env.cloudHost == "aws" ? 
     new S3BlobStore({ bucket: env.s3Bucket }) 
     : new AzureBlobStore(new AzureBlobStore({ 
       container:env.azStorageContainer, 
@@ -57,7 +57,7 @@ const main = async () => {
     }))
   const repoSigningKey = await Secp256k1Keypair.import(env.repoSigningKey)
   //todo: we need pub/private keys for both rotation and recovery
-  const plcRotationKey = cloudHost == "aws" ? 
+  const plcRotationKey = env.cloudHost == "aws" ? 
     await KmsKeypair.load({
       keyId: env.plcRotationKeyId,
     }) 
@@ -74,7 +74,7 @@ const main = async () => {
   if (env.recoveryKeyId.startsWith('did:')) {
     recoveryKey = env.recoveryKeyId
   } else {
-    const recoveryKeypair = cloudHost == "aws" ? 
+    const recoveryKeypair = env.cloudHost == "aws" ? 
     await KmsKeypair.load({
       keyId: env.recoveryKeyId,
     })
@@ -98,7 +98,7 @@ const main = async () => {
       password: env.smtpPassword,
     }),
   })
-  const imageInvalidator = cloudHost == "aws" ? new CloudfrontInvalidator({
+  const imageInvalidator = env.cloudHost == "aws" ? new CloudfrontInvalidator({
     distributionId: env.cfDistributionId,
     pathPrefix: cfg.imgUriEndpoint && new URL(cfg.imgUriEndpoint).pathname,
   }) : new AzureCDNInvalidator();

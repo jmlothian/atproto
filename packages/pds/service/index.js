@@ -20,7 +20,8 @@ const {
 const {
   AzureBlobStore,
   AzureCDNInvalidator,
-  KeyVaultKeypair
+  KeyVaultKeypair,
+  AzureBlobStoreConfig
 } = require('@atproto/azure')
 
 const { Database, ServerConfig, PDS } = require('@atproto/pds')

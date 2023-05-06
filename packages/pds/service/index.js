@@ -51,9 +51,7 @@ const main = async () => {
     : new AzureBlobStore({ 
       container:env.azStorageContainer, 
       accountName:env.azStorageAcctName,
-      tenantId:env.azTenantId,
-      clientId:env.azClientId,
-      clientSecret:env.azClientSecret
+      accountKey:env.azStorageAcctKey
     })
   const repoSigningKey = await Secp256k1Keypair.import(env.repoSigningKey)
   //todo: we need pub/private keys for both rotation and recovery
@@ -67,7 +65,7 @@ const main = async () => {
       tenantId:env.azTenantId,
       clientId:env.azClientId,
       clientSecret:env.azClientSecret,
-      vaultName:env.vaultName
+      vaultName:env.azVaultName
     })
 
   let recoveryKey
@@ -84,9 +82,8 @@ const main = async () => {
       tenantId:env.azTenantId,
       clientId:env.azClientId,
       clientSecret:env.azClientSecret,
-      vaultName:env.vaultName
+      vaultName:env.azVaultName
     })
-    
     recoveryKey = recoveryKeypair.did()
   }
   const cfg = ServerConfig.readEnv({
@@ -155,7 +152,8 @@ const getEnv = () => ({
   azTenantId: process.env.AZ_TENANT_ID,
   azClientId: process.env.AZ_CLIENT_ID,
   azClientSecret: process.env.AZ_CLIENT_SECRET,
-  azVaultName: process.env.AZ_VAULT_NAME
+  azVaultName: process.env.AZ_VAULT_NAME,
+  azStorageAcctKey: process.env.AZ_STORAGE_ACCT_KEY
 })
 
 const maintainXrpcResource = (span, req) => {

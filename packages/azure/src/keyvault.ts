@@ -28,12 +28,15 @@ export class KeyVaultKeypair implements crypto.Keypair {
       }
       static async load(cfg: KeyVaultConfig) {
         const { publicKeyId, privateKeyId, vaultName, tenantId, clientId, clientSecret } = cfg
-
+        console.log(cfg);
         
         const credential = new ClientSecretCredential(            
             tenantId,
             clientId,
-            clientSecret
+            clientSecret,
+            {
+                additionallyAllowedTenants:['*',tenantId]
+            }
         );
         
         //const credential = new DefaultAzureCredential();

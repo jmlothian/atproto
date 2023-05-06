@@ -48,13 +48,13 @@ const main = async () => {
   })
   const cloudBlobstore = env.cloudHost == "aws" ? 
     new S3BlobStore({ bucket: env.s3Bucket }) 
-    : new AzureBlobStore(new AzureBlobStoreConfig({ 
+    : new AzureBlobStore({ 
       container:env.azStorageContainer, 
       accountName:env.azStorageAcctName,
       tenantId:env.azTenantId,
       clientId:env.azClientId,
       clientSecret:env.azClientSecret
-    }))
+    })
   const repoSigningKey = await Secp256k1Keypair.import(env.repoSigningKey)
   //todo: we need pub/private keys for both rotation and recovery
   const plcRotationKey = env.cloudHost == "aws" ? 

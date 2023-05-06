@@ -28,7 +28,6 @@ const { Secp256k1Keypair } = require('@atproto/crypto')
 const { from } = require('form-data')
 
 const main = async () => {
-  const cloudhost = "azure";
 
   const env = getEnv()
   // Migrate using credentialed user
@@ -48,7 +47,7 @@ const main = async () => {
   })
   const cloudBlobstore = env.cloudHost == "aws" ? 
     new S3BlobStore({ bucket: env.s3Bucket }) 
-    : new AzureBlobStore(new AzureBlobStore({ 
+    : new AzureBlobStore(new AzureBlobStoreConfig({ 
       container:env.azStorageContainer, 
       accountName:env.azStorageAcctName,
       tenantId:env.azTenantId,

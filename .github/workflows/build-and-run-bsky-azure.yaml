@@ -4,6 +4,7 @@ on:
     branches:
       - main
 
+
 env:
   REGISTRY: ${{ secrets.REGISTRY_LOGIN_SERVER }}
   USERNAME: ${{ secrets.REGISTRY_USERNAME }}

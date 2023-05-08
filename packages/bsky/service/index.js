@@ -13,6 +13,7 @@ require('dd-trace/init') // Only works with commonjs
 const path = require('path')
 const { CloudfrontInvalidator } = require('@atproto/aws')
 const { Database, ServerConfig, BskyAppView } = require('@atproto/bsky')
+const { AzureCDNInvalidator } = require('@atproto/azure')
 
 const main = async () => {
   const env = getEnv()
@@ -41,17 +42,21 @@ const main = async () => {
     imgUriEndpoint: env.imgUriEndpoint,
     blobCacheLocation: env.blobCacheLocation,
   })
-  const cfInvalidator = env.cfDistributionId
+  var imgInvalidator = env.cloudHost == "aws" ? (env.cfDistributionId
     ? new CloudfrontInvalidator({
         distributionId: env.cfDistributionId,
         pathPrefix: cfg.imgUriEndpoint && new URL(cfg.imgUriEndpoint).pathname,
       })
-    : undefined
-  const bsky = BskyAppView.create({
+    : undefined)
+    : new AzureCDNInvalidator()
+
+
+    const bsky = BskyAppView.create({
     db,
     config: cfg,
-    imgInvalidator: cfInvalidator,
+    imgInvalidator: imgInvalidator,
   })
+  
   await bsky.start()
   // Graceful shutdown (see also https://aws.amazon.com/blogs/containers/graceful-shutdowns-with-ecs/)
   process.on('SIGTERM', async () => {
@@ -74,6 +79,7 @@ const getEnv = () => ({
   imgUriEndpoint: process.env.IMG_URI_ENDPOINT,
   blobCacheLocation: process.env.BLOB_CACHE_LOC,
   cfDistributionId: process.env.CF_DISTRIBUTION_ID,
+  cloudHost: process.env.CLOUD_HOST || 'aws'
 })
 
 const maintainXrpcResource = (span, req) => {

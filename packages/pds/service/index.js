@@ -16,6 +16,7 @@ const {
   S3BlobStore,
   CloudfrontInvalidator,
 } = require('@atproto/aws')
+const { Database, ServerConfig, PDS, makeAlgos } = require('@atproto/pds')
 
 const {
   AzureBlobStore,
@@ -24,7 +25,6 @@ const {
   AzureBlobStoreConfig
 } = require('@atproto/azure')
 
-const { Database, ServerConfig, PDS } = require('@atproto/pds')
 const { Secp256k1Keypair } = require('@atproto/crypto')
 const { from } = require('form-data')
 
@@ -99,6 +99,8 @@ const main = async () => {
     distributionId: env.cfDistributionId,
     pathPrefix: cfg.imgUriEndpoint && new URL(cfg.imgUriEndpoint).pathname,
   }) : new AzureCDNInvalidator();
+  const algos = env.feedPublisherDid ? makeAlgos(env.feedPublisherDid) : {}
+
 
   const pds = PDS.create({
     db,
@@ -107,6 +109,7 @@ const main = async () => {
     plcRotationKey,
     config: cfg,
     imgInvalidator: imageInvalidator,
+    algos,
   })
   await pds.start()
   // Graceful shutdown (see also https://aws.amazon.com/blogs/containers/graceful-shutdowns-with-ecs/)
@@ -146,6 +149,7 @@ const getEnv = () => ({
   smtpPassword: process.env.SMTP_PASSWORD,
   s3Bucket: process.env.S3_BUCKET_NAME,
   cfDistributionId: process.env.CF_DISTRIBUTION_ID,
+  feedPublisherDid: process.env.FEED_PUBLISHER_DID,
   cloudHost: process.env.CLOUD_HOST || 'aws',
   azStorageContainer: process.env.AZ_STORAGE_CONTAINER,
   azStorageAcctName : process.env.AZ_STORAGE_ACCT_NAME,

@@ -1,0 +1,29 @@
+{
+
+    "compilerOptions": {
+        "module": "esnext",
+      "esModuleInterop": true,
+      "target": "es2020",
+      "moduleResolution": "node",
+      "sourceMap": true,
+      "outDir": "dist",
+
+      "declaration": true,
+      "noImplicitAny": false,
+      "removeComments": true,
+      "noLib": false,
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "jsx": "preserve",
+      "strict": true,
+      "strictPropertyInitialization": false,
+      "resolveJsonModule": true,
+      "allowSyntheticDefaultImports": true,
+      "lib": ["dom", "dom.iterable", "esnext", "webworker"],
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "isolatedModules": true,
+      "composite": true,
+      "types":["node"]
+    }
+  }

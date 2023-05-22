@@ -1,0 +1,64 @@
+name: build-and-push-bsky-azure
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+  USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+  PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: bsky-app-view
+
+jobs:
+    bsky-container-azure:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+            id-token: write
+        steps:
+        # checkout the repo
+        - name: 'Checkout GitHub Action'
+          uses: actions/checkout@main
+
+        - name: Setup Docker buildx
+          uses: docker/setup-buildx-action@v1
+
+        - name: 'Login via Azure CLI'
+          uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+        - name: 'login to docker'
+          id: docker-login
+          uses: azure/docker-login@v1
+          with:
+            login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+            username: ${{ secrets.REGISTRY_USERNAME }}
+            password: ${{ secrets.REGISTRY_PASSWORD }}
+            
+        - name: Extract Docker metadata
+          id: meta
+          uses: docker/metadata-action@v4
+          with:
+            images: |
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            tags: |
+              type=sha,enable=true,priority=100,prefix=bsky:,suffix=,format=long
+
+
+        - name: Build and push Docker image
+          id: build-and-push
+          uses: docker/build-push-action@v4
+          with:
+            context: .
+            push: true
+            file: ./packages/bsky/Dockerfile
+            tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            labels: ${{ steps.meta.outputs.labels }}
+            build-args: |
+              version=${{ steps.tag.outputs.tag }}       
+

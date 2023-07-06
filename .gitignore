@@ -15,3 +15,5 @@ tsconfig.build.tsbuildinfo
 \#*\#
 *~
 *.swp
+docker-pds.env
+*.env

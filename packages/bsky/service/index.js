@@ -19,6 +19,7 @@ const {
   ViewMaintainer,
   makeAlgos,
 } = require('@atproto/bsky')
+const { AzureCDNInvalidator } = require('@atproto/azure')
 
 const main = async () => {
   const env = getEnv()
@@ -50,12 +51,14 @@ const main = async () => {
     imgUriEndpoint: env.imgUriEndpoint,
     blobCacheLocation: env.blobCacheLocation,
   })
-  const cfInvalidator = env.cfDistributionId
+  var imgInvalidator = env.cloudHost == "aws" ? (env.cfDistributionId
     ? new CloudfrontInvalidator({
         distributionId: env.cfDistributionId,
         pathPrefix: cfg.imgUriEndpoint && new URL(cfg.imgUriEndpoint).pathname,
       })
-    : undefined
+      : undefined)
+      : new AzureCDNInvalidator()
+
   const algos = env.feedPublisherDid ? makeAlgos(env.feedPublisherDid) : {}
   const bsky = BskyAppView.create({
     db,
@@ -65,6 +68,8 @@ const main = async () => {
   })
   const viewMaintainer = new ViewMaintainer(migrateDb)
   const viewMaintainerRunning = viewMaintainer.run()
+
+  
   await bsky.start()
   // Graceful shutdown (see also https://aws.amazon.com/blogs/containers/graceful-shutdowns-with-ecs/)
   process.on('SIGTERM', async () => {
@@ -94,6 +99,7 @@ const getEnv = () => ({
   blobCacheLocation: process.env.BLOB_CACHE_LOC,
   cfDistributionId: process.env.CF_DISTRIBUTION_ID,
   feedPublisherDid: process.env.FEED_PUBLISHER_DID,
+  cloudHost: process.env.CLOUD_HOST || 'aws'
 })
 
 const maybeParseInt = (str) => {

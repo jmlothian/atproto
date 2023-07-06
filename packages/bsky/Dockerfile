@@ -7,6 +7,7 @@ COPY ./*.* ./
 COPY ./packages/bsky ./packages/bsky
 COPY ./packages/api ./packages/api
 COPY ./packages/aws ./packages/aws
+COPY ./packages/azure ./packages/azure
 COPY ./packages/common ./packages/common
 COPY ./packages/common-web ./packages/common-web
 COPY ./packages/crypto ./packages/crypto
@@ -17,6 +18,9 @@ COPY ./packages/nsid ./packages/nsid
 COPY ./packages/repo ./packages/repo
 COPY ./packages/uri ./packages/uri
 COPY ./packages/xrpc ./packages/xrpc
+COPY ./packages/lex-cli ./packages/lex-cli
+COPY ./packages/pds ./packages/pds
+COPY ./packages/dev-env ./packages/dev-env
 COPY ./packages/xrpc-server ./packages/xrpc-server
 RUN ATP_BUILD_SHALLOW=true yarn install --frozen-lockfile > /dev/null
 RUN yarn workspaces run build --update-main-to-dist > /dev/null
